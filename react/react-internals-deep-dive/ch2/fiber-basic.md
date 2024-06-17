@@ -55,6 +55,8 @@ export function createContainer(containerInfo) {
 
 ### createFiberRoot
 
+in ReactFiberRoot.old.js
+
 ```js
 export function createFiberRoot(containerInfo):FiberRoot {
   ...
