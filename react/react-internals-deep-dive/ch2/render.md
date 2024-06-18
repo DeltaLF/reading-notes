@@ -9,7 +9,7 @@ ReactDOM.createRoot(document.getElementById("root")).render;
 ## related components
 
 context:  
-lane:  
+lane: bitmask number for scheduling priority
 update: A linked list structure which contains a property payload that is the React component user defined
 
 ## render
@@ -64,7 +64,7 @@ export type Update<State> = {|
   eventTime: number,
   lane: Lane,
   tag: 0 | 1 | 2 | 3,
-  payload: any,
+  payload: any, // react component defined by users
   callback: (() => mixed) | null,
   next: Update<State> | null,
 |};
@@ -109,7 +109,64 @@ export function enqueueUpdate<State>(
 
     return unsafe_markUpdateLaneFromFiberToRoot(fiber, lane);
   } else {
+    // return root
     return enqueueConcurrentClassUpdate(fiber, sharedQueue, update, lane);
   }
+}
+```
+
+### enqueueConcurrentClassUpdate
+
+in RootFiberConcurrentUpdates.old.js
+
+```js
+export function enqueueConcurrentClassUpdate<State>(
+  fiber: Fiber,
+  queue: ClassQueue<State>,
+  update: ClassUpdate<State>,
+  lane: Lane
+) {
+  const interleaved = queue.interleaved;
+  if (interleaved === null) {
+    // This is the first update. Create a circular list.
+    update.next = update;
+    // At the end of the current render, this queue's interleaved updates will
+    // be transferred to the pending queue.
+    pushConcurrentUpdateQueue(queue);
+  } else {
+    update.next = interleaved.next;
+    interleaved.next = update;
+  }
+  queue.interleaved = update;
+
+  return markUpdateLaneFromFiberToRoot(fiber, lane);
+}
+```
+
+### lane
+
+bitmask for scheduling
+defined in ReactFiberLane.old.js
+
+```js
+export const TotalLanes = 31;
+
+export const NoLanes: Lanes = /*                        */ 0b0000000000000000000000000000000;
+export const NoLane: Lane = /*                          */ 0b0000000000000000000000000000000;
+...
+const TransitionHydrationLane: Lane = /*                */ 0b0000000000000000000000000100000;
+const TransitionLane7: Lane = /*                        */ 0b0000000000000000001000000000000;
+
+// use & operation to match bitmask
+function getLabelForLane(lane: Lane): string | void {
+    if (enableSchedulingProfiler) {
+    if (lane & SyncLane) {
+      return 'Sync';
+    }
+    if (lane & InputContinuousHydrationLane) {
+      return 'InputContinuousHydration';
+    }
+    ...
+    }
 }
 ```
