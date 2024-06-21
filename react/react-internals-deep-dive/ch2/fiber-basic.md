@@ -110,7 +110,7 @@ function FiberNode(
   this.lanes = NoLanes;
   this.childLanes = NoLanes;
 
-  this.alternate = null;
+  this.alternate = null; // for WIP fiber to reference current fiber
   ...
 }
 ```
